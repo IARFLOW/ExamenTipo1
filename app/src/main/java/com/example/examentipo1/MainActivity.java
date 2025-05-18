@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -59,10 +60,17 @@ public class MainActivity extends AppCompatActivity {
         boolean isFirstRun = prefs.getBoolean(KEY_FIRST_RUN, true);
         
         if (isFirstRun) {
-            FileUtils.copyAvatarsToInternalStorage(this);
-            SharedPreferences.Editor editor = prefs.edit();
-            editor.putBoolean(KEY_FIRST_RUN, false);
-            editor.apply();
+            try {
+                FileUtils.copyAvatarsToInternalStorage(this);
+                // Solo marcar como no primera ejecución si la copia fue exitosa
+                SharedPreferences.Editor editor = prefs.edit();
+                editor.putBoolean(KEY_FIRST_RUN, false);
+                editor.apply();
+            } catch (Exception e) {
+                // Si hay un error, registrarlo pero continuar con la aplicación
+                Log.e("MainActivity", "Error al copiar avatares", e);
+                Toast.makeText(this, "Error al copiar avatares. Algunas funciones pueden no estar disponibles.", Toast.LENGTH_SHORT).show();
+            }
         }
         
         // Verificar si el usuario está autenticado
