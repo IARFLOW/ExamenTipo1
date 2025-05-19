@@ -17,6 +17,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.example.examentipo1.db.DatabaseHelper;
 import com.example.examentipo1.model.Usuario;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -28,7 +29,8 @@ public class RegistroActivity extends AppCompatActivity {
     private Button btnSelImagen, btnAlta;
     private DatabaseHelper dbHelper;
     private String selectedAvatarPath;
-    
+    private byte[] selectedAvatarBytes; // AÑADIDO
+
     private ActivityResultLauncher<Intent> selectAvatarLauncher;
 
     @Override
@@ -64,6 +66,19 @@ public class RegistroActivity extends AppCompatActivity {
                                 Bitmap bitmap = BitmapFactory.decodeStream(fis);
                                 ivAvatar.setImageBitmap(bitmap);
                                 fis.close();
+                                try (FileInputStream fisForBytes = new FileInputStream(avatarFile); // Nuevo FileInputStream para leer los bytes
+                                     ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+                                    byte[] buffer = new byte[1024];
+                                    int bytesRead;
+                                    while ((bytesRead = fisForBytes.read(buffer)) != -1) {
+                                        baos.write(buffer, 0, bytesRead);
+                                    }
+                                    selectedAvatarBytes = baos.toByteArray(); // Guarda los bytes en la variable miembro
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                    Toast.makeText(this, "Error al procesar datos del avatar", Toast.LENGTH_SHORT).show();
+                                    selectedAvatarBytes = null; // En caso de error, asegúrate de que esté null
+                                }
                             }
                         } catch (IOException e) {
                             e.printStackTrace();
@@ -107,8 +122,7 @@ public class RegistroActivity extends AppCompatActivity {
         
         try {
             // Crear objeto Usuario
-            Usuario nuevoUsuario = new Usuario(nombre, apellidos, direccion, telefono, login, password, selectedAvatarPath);
-            
+            Usuario nuevoUsuario = new Usuario(nombre, apellidos, direccion, telefono, login, password, selectedAvatarBytes); // MODIFICADO
             // Guardar en la base de datos
             long id = dbHelper.insertUsuario(nuevoUsuario);
             

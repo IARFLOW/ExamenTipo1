@@ -19,8 +19,8 @@ public class LoginActivity extends AppCompatActivity {
 
     private static final String PREF_NAME = "UserPrefs";
     private static final String KEY_USER_ID = "userId";
-    private static final String KEY_USER_LOGIN = "userLogin";
-    
+    private static final String KEY_USER_NAME = "userName"; // MODIFICADO (era KEY_USER_LOGIN)
+
     private EditText etLoginUsuario, etLoginPassword;
     private Button btnLogin, btnRegistrarse;
     private DatabaseHelper dbHelper;
@@ -63,9 +63,10 @@ public class LoginActivity extends AppCompatActivity {
                 SharedPreferences prefs = getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
                 SharedPreferences.Editor editor = prefs.edit();
                 editor.putInt(KEY_USER_ID, usuario.getId());
-                editor.putString(KEY_USER_LOGIN, usuario.getLogin());
+                editor.putString(KEY_USER_NAME, usuario.getNombre()); // MODIFICADO
                 editor.apply();
-                
+
+
                 // Verificar que el ID se guardó correctamente
                 int savedId = prefs.getInt(KEY_USER_ID, -1);
                 Log.d("LoginActivity", "ID guardado en SharedPreferences: " + savedId);

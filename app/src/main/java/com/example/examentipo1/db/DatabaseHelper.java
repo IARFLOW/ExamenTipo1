@@ -35,7 +35,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             COLUMN_TELEFONO + " TEXT, " +
             COLUMN_LOGIN + " TEXT UNIQUE, " +
             COLUMN_PASSWORD + " TEXT, " +
-            COLUMN_AVATAR + " TEXT" +
+            COLUMN_AVATAR + " BLOB" +
             ")";
 
     public DatabaseHelper(Context context) {
@@ -64,8 +64,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(COLUMN_TELEFONO, usuario.getTelefono());
         values.put(COLUMN_LOGIN, usuario.getLogin());
         values.put(COLUMN_PASSWORD, usuario.getPassword());
-        values.put(COLUMN_AVATAR, usuario.getAvatarPath());
-        
+        values.put(COLUMN_AVATAR, usuario.getAvatarData()); // MODIFICADO
+
         long id = db.insert(TABLE_USUARIOS, null, values);
         db.close();
         return id;
@@ -101,8 +101,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 usuario.setDireccion(cursor.getString(3)); // COLUMN_DIRECCION
                 usuario.setTelefono(cursor.getString(4)); // COLUMN_TELEFONO
                 usuario.setLogin(cursor.getString(5)); // COLUMN_LOGIN
-                usuario.setAvatarPath(cursor.getString(6)); // COLUMN_AVATAR
-                usuario.setPassword(password); // No lo recuperamos de la BD, pero lo necesitamos
+                usuario.setAvatarData(cursor.getBlob(6)); // COLUMN_AVATAR - MODIFICADO                usuario.setPassword(password); // No lo recuperamos de la BD, pero lo necesitamos
             } catch (Exception e) {
                 Log.e("DatabaseHelper", "Error al leer datos del cursor", e);
             } finally {
@@ -146,7 +145,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 usuario.setTelefono(cursor.getString(4)); // COLUMN_TELEFONO
                 usuario.setLogin(cursor.getString(5)); // COLUMN_LOGIN
                 usuario.setPassword(cursor.getString(6)); // COLUMN_PASSWORD
-                usuario.setAvatarPath(cursor.getString(7)); // COLUMN_AVATAR
+                usuario.setAvatarData(cursor.getBlob(7)); // COLUMN_AVATAR - MODIFICADO
             } catch (Exception e) {
                 Log.e("DatabaseHelper", "Error al leer datos del cursor", e);
             } finally {

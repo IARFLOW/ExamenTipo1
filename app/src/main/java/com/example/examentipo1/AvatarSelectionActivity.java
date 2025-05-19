@@ -82,33 +82,51 @@ public class AvatarSelectionActivity extends AppCompatActivity {
     }
     
     private void loadAvatars() {
+        // Dentro de private void loadAvatars() en AvatarSelectionActivity.java
         avatarList = new ArrayList<>();
-        
-        // Obtener directorio files de la aplicación
         File filesDir = getFilesDir();
-        Log.d(TAG, "Directorio de archivos: " + filesDir.getAbsolutePath());
-        
-        // Crear objetos de avatar para cada uno disponible
-        // y verificar si los archivos existen
+        Log.d(TAG, "AvatarSelectionActivity - Leyendo avatares desde: " + filesDir.getAbsolutePath());
+
         String[] avatarNames = {"1.png", "2.png", "3.png", "4.png"};
-        
+
+        // Primero intentamos cargar desde archivos existentes
+        boolean algunAvatarCargado = false;
         for (String name : avatarNames) {
             File file = new File(filesDir, name);
             String path = file.getAbsolutePath();
-            
-            if (file.exists()) {
-                Log.d(TAG, "Archivo encontrado: " + path);
+
+            if (file.exists() && file.length() > 0) {
+                Log.d(TAG, "Avatar ENCONTRADO y válido en filesDir: " + path);
+                avatarList.add(new AvatarItem(name, path));
+                algunAvatarCargado = true;
             } else {
-                Log.d(TAG, "Archivo NO encontrado: " + path);
+                // Registramos el problema pero añadimos el item de todos modos - el adaptador usará imágenes de respaldo
+                if (!file.exists()) {
+                    Log.e(TAG, "AVATAR NO ENCONTRADO en filesDir: " + path);
+                } else {
+                    Log.e(TAG, "Avatar ENCONTRADO pero VACÍO en filesDir: " + path + " (Tamaño: " + file.length() + " bytes)");
+                }
+                
+                // Añadir el avatar de todos modos, el adaptador se encargará de usar imágenes de respaldo
+                avatarList.add(new AvatarItem(name, path));
             }
-            
-            // Agregar a la lista de todas formas, el adaptador manejará los archivos inexistentes
-            avatarList.add(new AvatarItem(name, path));
         }
-        
-        if (avatarList.isEmpty()) {
-            Log.e(TAG, "¡No se encontraron avatares!");
-            Toast.makeText(this, "No se encontraron avatares", Toast.LENGTH_SHORT).show();
+
+        if (!algunAvatarCargado) {
+            Log.w(TAG, "No hay avatares válidos en archivos. Usando imágenes de respaldo.");
+            Toast.makeText(this, "Usando imágenes de respaldo para los avatares.", Toast.LENGTH_SHORT).show();
+            
+            // Intenta copiar los avatares de nuevo en segundo plano
+            new Thread(() -> {
+                try {
+                    Log.d(TAG, "Intentando copiar avatares nuevamente desde assets...");
+                    com.example.examentipo1.util.FileUtils.copyAvatarsToInternalStorage(getApplicationContext());
+                } catch (Exception e) {
+                    Log.e(TAG, "Error al reintentar copia de assets", e);
+                }
+            }).start();
+        } else {
+            Log.d(TAG, "Avatares cargados en la lista: " + avatarList.size());
         }
     }
 }

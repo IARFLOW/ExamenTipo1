@@ -8,21 +8,20 @@ public class Usuario {
     private String telefono;
     private String login;
     private String password;
-    private String avatarPath;
+    private byte[] avatarData; // MODIFICADO
 
     public Usuario() {
     }
 
-    public Usuario(String nombre, String apellidos, String direccion, String telefono, String login, String password, String avatarPath) {
+    public Usuario(String nombre, String apellidos, String direccion, String telefono, String login, String password, byte[] avatarData) { // MODIFICADO el tipo del último parámetro
         this.nombre = nombre;
         this.apellidos = apellidos;
         this.direccion = direccion;
         this.telefono = telefono;
         this.login = login;
         this.password = password;
-        this.avatarPath = avatarPath;
+        this.avatarData = avatarData; // MODIFICADO
     }
-
     public int getId() {
         return id;
     }
@@ -79,11 +78,11 @@ public class Usuario {
         this.password = password;
     }
 
-    public String getAvatarPath() {
-        return avatarPath;
+    public byte[] getAvatarData() { // MODIFICADO
+        return avatarData;
     }
 
-    public void setAvatarPath(String avatarPath) {
-        this.avatarPath = avatarPath;
+    public void setAvatarData(byte[] avatarData) { // MODIFICADO
+        this.avatarData = avatarData;
     }
 }

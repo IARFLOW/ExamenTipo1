@@ -1,121 +1,73 @@
 package com.example.examentipo1.util;
 
 import android.content.Context;
-import android.content.res.Resources;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Canvas;
-import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.Drawable;
-import android.graphics.drawable.VectorDrawable;
-import android.os.Build;
 import android.util.Log;
-import androidx.core.content.ContextCompat;
 
 import com.example.examentipo1.R;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 public class FileUtils {
 
-    private static final String TAG = "FileUtils";
+    private static final String TAG = "FileUtils"; // TAG para filtrar
 
-    /**
-     * Copia las imágenes de avatar predefinidas desde los drawables a la carpeta de archivos interna.
-     * Se llama desde la MainActivity la primera vez que se inicia la aplicación.
-     */
     public static void copyAvatarsToInternalStorage(Context context) {
-        try {
-            // Avatar 1
-            copyDrawableToFile(context, R.drawable.avatar1, "1.png");
-            
-            // Avatar 2
-            copyDrawableToFile(context, R.drawable.avatar2, "2.png");
-            
-            // Avatar 3
-            copyDrawableToFile(context, R.drawable.avatar3, "3.png");
-            
-            // Avatar 4
-            copyDrawableToFile(context, R.drawable.avatar4, "4.png");
-            
-            Log.d(TAG, "Todos los avatares se han copiado correctamente");
-        } catch (Exception e) {
-            Log.e(TAG, "Error general al copiar avatares", e);
+        String[] avatarNames = {"1.png", "2.png", "3.png", "4.png"};
+        File internalDir = context.getFilesDir();
+
+        Log.d(TAG, ">>> FileUtils: INICIANDO COPIA desde ASSETS a " + internalDir.getAbsolutePath()); // Log A
+
+        // Aseguramos que el directorio existe
+        if (!internalDir.exists()) {
+            boolean dirCreated = internalDir.mkdirs();
+            Log.d(TAG, ">>> FileUtils: Directorio interno creado: " + dirCreated);
         }
-    }
-    
-    /**
-     * Copia un drawable a un archivo en el almacenamiento interno
-     * Funciona tanto con drawables vectoriales como con bitmaps
-     */
-    private static void copyDrawableToFile(Context context, int drawableId, String fileName) {
-        File file = new File(context.getFilesDir(), fileName);
+
+        boolean assetsCopiados = false;
+
+        for (String avatarName : avatarNames) {
+            File destFile = new File(internalDir, avatarName);
+            
+            // Si el archivo ya existe y no está vacío, no lo copiamos de nuevo
+            if (destFile.exists() && destFile.length() > 0) {
+                Log.d(TAG, ">>> FileUtils: El archivo '" + avatarName + "' ya existe y no está vacío. Tamaño: " + destFile.length() + " bytes");
+                assetsCopiados = true;
+                continue;
+            }
+            
+            Log.d(TAG, ">>> FileUtils: Intentando copiar asset '" + avatarName + "' a '" + destFile.getAbsolutePath() + "'"); // Log B
+
+            try (InputStream in = context.getAssets().open(avatarName); // <--- ESTA LÍNEA ES CLAVE
+                 OutputStream out = new FileOutputStream(destFile)) {
+
+                byte[] buffer = new byte[1024];
+                int read;
+                while ((read = in.read(buffer)) != -1) {
+                    out.write(buffer, 0, read);
+                }
+                out.flush();
+                Log.d(TAG, ">>> FileUtils: COPIADO asset '" + avatarName + "' (Tamaño final: " + destFile.length() + " bytes)"); // Log C
+
+                if (destFile.length() == 0) {
+                    Log.e(TAG, "!!! FileUtils: ALERTA - Archivo copiado " + avatarName + " TIENE 0 BYTES!"); // Log D
+                } else {
+                    assetsCopiados = true;
+                }
+
+            } catch (IOException e) {
+                Log.e(TAG, "!!! FileUtils: IOException al copiar '" + avatarName + "'. Asset existe? Nombres coinciden? Error: " + e.getMessage(), e); // Log E
+
+            } catch (Exception e) {
+                Log.e(TAG, "!!! FileUtils: Error GENERAL al copiar '" + avatarName + "'. Error: " + e.getMessage(), e); // Log F
+            }
+        }
         
-        // Si el archivo ya existe, no lo copiamos de nuevo
-        if (file.exists()) {
-            Log.d(TAG, "El avatar ya existe: " + fileName);
-            return;
-        }
-        
-        try {
-            // Convertir el drawable (bitmap o vector) a bitmap
-            Bitmap bitmap = getBitmapFromDrawable(context, drawableId);
-            
-            if (bitmap == null) {
-                Log.e(TAG, "No se pudo convertir el drawable a bitmap: " + fileName);
-                return;
-            }
-            
-            // Guardar el bitmap al archivo
-            FileOutputStream fos = new FileOutputStream(file);
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
-            fos.close();
-            
-            Log.d(TAG, "Avatar copiado correctamente: " + fileName);
-        } catch (IOException e) {
-            Log.e(TAG, "Error al copiar avatar: " + fileName, e);
-        } catch (Exception e) {
-            Log.e(TAG, "Error inesperado al copiar avatar: " + fileName, e);
-        }
-    }
-    
-    /**
-     * Convierte un drawable (bitmap o vector) a bitmap
-     */
-    private static Bitmap getBitmapFromDrawable(Context context, int drawableId) {
-        try {
-            Drawable drawable = ContextCompat.getDrawable(context, drawableId);
-            
-            if (drawable == null) {
-                return null;
-            }
-            
-            if (drawable instanceof BitmapDrawable) {
-                return ((BitmapDrawable) drawable).getBitmap();
-            }
-            
-            // Para drawables vectoriales o de otro tipo
-            Bitmap bitmap;
-            
-            if (drawable.getIntrinsicWidth() <= 0 || drawable.getIntrinsicHeight() <= 0) {
-                // Tamaño por defecto para drawables sin tamaño intrínseco
-                bitmap = Bitmap.createBitmap(100, 100, Bitmap.Config.ARGB_8888);
-            } else {
-                bitmap = Bitmap.createBitmap(drawable.getIntrinsicWidth(), 
-                                           drawable.getIntrinsicHeight(), 
-                                           Bitmap.Config.ARGB_8888);
-            }
-            
-            Canvas canvas = new Canvas(bitmap);
-            drawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
-            drawable.draw(canvas);
-            
-            return bitmap;
-        } catch (Exception e) {
-            Log.e(TAG, "Error al convertir drawable a bitmap", e);
-            return null;
+        if (!assetsCopiados) {
+            Log.e(TAG, ">>> FileUtils: ALERTA - No se pudo copiar ningún asset.");
         }
     }
 }

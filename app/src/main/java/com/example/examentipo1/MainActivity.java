@@ -45,32 +45,43 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
-        
-        // Configurar insets
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
-            return insets;
-        });
         
         // Copiar avatares al almacenamiento interno en el primer inicio
         SharedPreferences prefs = getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
         boolean isFirstRun = prefs.getBoolean(KEY_FIRST_RUN, true);
-        
-        if (isFirstRun) {
+
+        // Comprobar si los archivos de avatar existen en filesDir
+        File filesDir = getFilesDir();
+        boolean algunoEncontrado = false;
+        for (String avatarName : new String[]{"1.png", "2.png", "3.png", "4.png"}) {
+            File file = new File(filesDir, avatarName);
+            if (file.exists() && file.length() > 0) {
+                algunoEncontrado = true;
+                Log.d("MainActivity", "Archivo de avatar " + avatarName + " encontrado: " + file.getAbsolutePath());
+                break; // Con encontrar uno es suficiente
+            }
+        }
+
+        // Si es la primera ejecución o no se encontraron archivos de avatar, copiarlos
+        if (isFirstRun || !algunoEncontrado) {
             try {
+                Log.d("MainActivity", "COPIANDO AVATARES: " + (isFirstRun ? "Primera ejecución" : "No se encontraron avatares"));
                 FileUtils.copyAvatarsToInternalStorage(this);
-                // Solo marcar como no primera ejecución si la copia fue exitosa
+                
+                // Marcar como que no es la primera ejecución
                 SharedPreferences.Editor editor = prefs.edit();
                 editor.putBoolean(KEY_FIRST_RUN, false);
                 editor.apply();
+                
+                Log.d("MainActivity", "Avatares procesados y KEY_FIRST_RUN puesto a false.");
             } catch (Exception e) {
-                // Si hay un error, registrarlo pero continuar con la aplicación
                 Log.e("MainActivity", "Error al copiar avatares", e);
-                Toast.makeText(this, "Error al copiar avatares. Algunas funciones pueden no estar disponibles.", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Error al configurar avatares. La aplicación puede mostrar imágenes por defecto.", Toast.LENGTH_LONG).show();
+                // Seguimos adelante aunque haya errores, FileUtils intentará crear placehoders
             }
+        } else {
+            Log.d("MainActivity", "Avatares encontrados en almacenamiento interno, no es necesario copiarlos.");
         }
         
         // Verificar si el usuario está autenticado
@@ -117,19 +128,20 @@ public class MainActivity extends AppCompatActivity {
             tvLoginPrincipal.setText(currentUser.getLogin());
             
             // Cargar avatar si existe
-            if (currentUser.getAvatarPath() != null && !currentUser.getAvatarPath().isEmpty()) {
+            // Cargar avatar si existe (desde byte[])
+            byte[] avatarBytes = currentUser.getAvatarData(); // MODIFICADO: Obtener byte[]
+            if (avatarBytes != null && avatarBytes.length > 0) {
                 try {
-                    File avatarFile = new File(currentUser.getAvatarPath());
-                    if (avatarFile.exists()) {
-                        FileInputStream fis = new FileInputStream(avatarFile);
-                        Bitmap bitmap = BitmapFactory.decodeStream(fis);
-                        ivAvatar.setImageBitmap(bitmap);
-                        fis.close();
-                    }
-                } catch (IOException e) {
+                    Bitmap bitmap = BitmapFactory.decodeByteArray(avatarBytes, 0, avatarBytes.length); // MODIFICADO: Decodificar byte[]
+                    ivAvatar.setImageBitmap(bitmap);
+                } catch (Exception e) { // Captura Exception general por si acaso
                     e.printStackTrace();
-                    Toast.makeText(this, "Error al cargar avatar", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Error al decodificar avatar desde BD", Toast.LENGTH_SHORT).show();
+                    ivAvatar.setImageResource(R.mipmap.ic_launcher); // Opcional: imagen por defecto en error
                 }
+            } else {
+                // Opcional: Poner una imagen por defecto si no hay avatar o está vacío
+                ivAvatar.setImageResource(R.mipmap.ic_launcher); // Usa tu placeholder si tienes uno, o ic_launcher
             }
         } else {
             Toast.makeText(this, "Error al cargar datos del usuario", Toast.LENGTH_SHORT).show();
@@ -160,7 +172,7 @@ public class MainActivity extends AppCompatActivity {
         SharedPreferences prefs = getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
         editor.remove(KEY_USER_ID);
-        editor.remove(KEY_USER_LOGIN);
+        editor.remove("userName"); // MODIFICADO (usa la misma cadena que KEY_USER_NAME en LoginActivity)
         editor.apply();
         
         // Redirigir a LoginActivity
